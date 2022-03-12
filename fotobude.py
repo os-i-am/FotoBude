@@ -82,8 +82,3 @@ while True :
     if GPIO.input(10) == GPIO.HIGH:
         captureImage()
         print("image captured")
-        
- 
-
-                       
-                       
