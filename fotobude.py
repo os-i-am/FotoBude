@@ -1,7 +1,7 @@
 from time import sleep
 from datetime import datetime
 from sh import gphoto2 as gp
-import signal, glob, os, subprocess
+import signal, glob, os, subprocess, sys
 import RPi.GPIO as GPIO
 
 #############
@@ -77,33 +77,50 @@ def displayMostRecentImage () :
     sleep (5)
     #os.system("sudo killall fbi")
     os.system("sudo fbi -a --noverbose -T 2 /mnt/FotoBude/ready.jpg")
+    sleep(0.5)
 
 #################
 # PROGRAM START #
 #################
 
-killgp2()
-# gp(deleteCF)
-createSaveFolder()
-
 # GPIO setup
+BTN_PIN = 19
+LED_PIN = 26
+
+GPIO.setwarnings(False)
 GPIO.setmode(GPIO.BCM)
-GPIO.setup(15, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+GPIO.setup(BTN_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.setup(LED_PIN, GPIO.OUT)
+
+# general setup
+killgp2()
+createSaveFolder()
 print("...ready")
+GPIO.output(LED_PIN, True)
+
+# button press routine
+def button_pressed(channel):
+    sleep(0.1)
+    if (GPIO.input(channel) == False):
+        GPIO.output(LED_PIN, False)
+        captureImage()
+        print("image captured")
+        displayMostRecentImage()
+        GPIO.output(LED_PIN, True)
+
+# event handler for button presses
+GPIO.add_event_detect(BTN_PIN, edge = GPIO.RISING, callback = button_pressed, bouncetime = 300)
+
+# shutdown gracefully
+def shutdown(signal, frame):
+  print("..shutting down")  
+  GPIO.output(LED_PIN, False)
+  GPIO.cleanup()
+  sys.exit(0)
 
 # main loop
 os.system("sudo fbi -a --noverbose -T 2 /mnt/FotoBude/ready.jpg")
+signal.signal(signal.SIGINT, shutdown)
 
-while True :
-    if GPIO.input(15) == GPIO.HIGH:
-        captureImage()
-
-        #renameFiles(picID)
-        print("image captured")
-
-        displayMostRecentImage()
-        
- 
-
-                       
-                       
+while True:
+  sleep(1)
