@@ -1,7 +1,7 @@
 from time import sleep
 from datetime import datetime
 from sh import gphoto2 as gp
-import signal, os, subprocess
+import signal, glob, os, subprocess
 import RPi.GPIO as GPIO
 
 #############
@@ -10,7 +10,7 @@ import RPi.GPIO as GPIO
 
 # file naming variables
 shot_date = datetime.now().strftime("%d.%m.%Y")
-shot_time = datetime.now().strftime("%d.%m.%Y %H:%M:%S")
+shot_time = datetime.now().strftime("%H:%M:%S")
 picID = "_FotoBude"
 
 # clear command: delete ALL images on camera CF
@@ -23,20 +23,18 @@ keepOnCF = ["--keep"]
 
 # setup folder structure and save location
 folder_name = shot_date + picID
-save_location = "/home/pi/Desktop/gphoto/images/" + folder_name
+save_location = "/mnt/FotoBude/images/" + folder_name
 
 #############
 # FUNCTIONS #
 #############
 
-# kill gphoto2 process that starts
-# whenever the camera gets connected
+# kill gphoto2 process at startup
 def killgp2 () :
     p = subprocess.Popen (['ps', '-A'], stdout=subprocess.PIPE)
     out, err = p.communicate ()
 
-    # Search for the Process ID (pid)
-    # that has thegphoto2 process 
+    # Search for the gphoto process ID (pid)
     for line in out.splitlines () :
         if b'gvfsd-gphoto2' in line:
             # Kill found process
@@ -60,9 +58,25 @@ def captureImage () :
 # rename images
 def renameFiles (ID) :
     for filename in os.listdir(".") :
-        if len(filename) < 13 :
-            os.rename (filename, (shot_time + ID + ".JPG"))
+        if len(filename) < 13:
+            os.rename (filename, (shot_time +  ID + ".JPG"))
             print ("Renamed the JPG")
+
+def displayMostRecentImage () :    
+    files_path = os.path.join(save_location, '*')
+    files = sorted(glob.iglob(files_path), key=os.path.getctime, reverse=True)
+
+    recent_img = [
+        files[0],
+#       files[1],
+#       files[2],
+#       files[3]
+    ]
+
+    os.system("sudo fbi -a --noverbose -T 2 " + recent_img[0])
+    sleep (5)
+    #os.system("sudo killall fbi")
+    os.system("sudo fbi -a --noverbose -T 2 /mnt/FotoBude/ready.jpg")
 
 #################
 # PROGRAM START #
@@ -78,7 +92,18 @@ GPIO.setup(10, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 print("...ready")
 
 # main loop
+os.system("sudo fbi -a --noverbose -T 2 /mnt/FotoBude/ready.jpg")
+
 while True :
     if GPIO.input(10) == GPIO.HIGH:
         captureImage()
+
+        #renameFiles(picID)
         print("image captured")
+
+        displayMostRecentImage()
+        
+ 
+
+                       
+                       
