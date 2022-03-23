@@ -87,15 +87,15 @@ killgp2()
 createSaveFolder()
 
 # GPIO setup
-GPIO.setmode(GPIO.BOARD)
-GPIO.setup(10, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(15, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 print("...ready")
 
 # main loop
 os.system("sudo fbi -a --noverbose -T 2 /mnt/FotoBude/ready.jpg")
 
 while True :
-    if GPIO.input(10) == GPIO.HIGH:
+    if GPIO.input(15) == GPIO.HIGH:
         captureImage()
 
         #renameFiles(picID)
